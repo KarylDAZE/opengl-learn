@@ -18,7 +18,13 @@ const char *vertexShaderSource = "#version 330 core\n"
                                    "void main()\n"
                                    "{\n"
                                    "FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-                                   "}\0 ";
+                                   "}\0 ",
+           *fragmentShaderSource1 = "#version 330 core\n"
+                                    "out vec4 FragColor;\n"
+                                    "void main()\n"
+                                    "{\n"
+                                    "FragColor = vec4(1.0f, 1.0f, 0f, 1.0f);\n"
+                                    "}\0 ";
 
 int main()
 {
@@ -94,16 +100,25 @@ int main()
                   << infoLog << std::endl;
     }
 
-    unsigned int fragmentShader;
+    unsigned int fragmentShader, fragmentShader1;
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
-    unsigned int shaderProgram;
+    fragmentShader1 = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader1, 1, &fragmentShaderSource1, NULL);
+    glCompileShader(fragmentShader1);
+
+    unsigned int shaderProgram, shaderProgram1;
     shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
+
+    shaderProgram1 = glCreateProgram();
+    glAttachShader(shaderProgram1, vertexShader);
+    glAttachShader(shaderProgram1, fragmentShader1);
+    glLinkProgram(shaderProgram1);
 
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success)
@@ -127,7 +142,10 @@ int main()
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
         // glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+
+        glUseProgram(shaderProgram1);
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (const void *)(3 * sizeof(unsigned int)));
 
         glfwSwapBuffers(window);
         glfwPollEvents();
