@@ -52,8 +52,6 @@ int main()
 
     unsigned int VBO;
     glGenBuffers(1, &VBO);
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -77,7 +75,6 @@ int main()
     Shader shader("../shaders/shader.vs", "../shaders/shader.fs");
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -86,11 +83,12 @@ int main()
 
         shader.use();
 
+        float xOff, yOff, time = glfwGetTime();
+        xOff = (fmod(time, 2.) - 1) / 2;
+        yOff = sin(time) / 2;
         // 更新uniform颜色
-        // shader.setFloat("uniform",1);
-
+        glUniform3f(glGetUniformLocation(shader.ID, "posOffset"), xOff, yOff, 0);
         glBindVertexArray(VAO);
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);

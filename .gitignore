@@ -7,13 +7,11 @@
 **/build
 **/.DS_Store
 **/.history
-**/*.a
-**/*.lib
-**/*.exe
+# **/*.a
+# **/*.lib
+# **/*.exe
 **/.*.swp
 **/.vscode/*
-src/main
-tags
 tests/googletest
 
 cmake-build-debug
