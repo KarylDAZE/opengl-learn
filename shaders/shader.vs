@@ -9,11 +9,11 @@ out vec3 outPos;
 uniform vec3 posOffset;
 out vec2 TexCoord;
 
-uniform mat4 transform;
+uniform mat4 model,view,projection;
 
 void main()
 {
-   gl_Position=transform*vec4(aPos+posOffset,1);
+   gl_Position=projection*view*model*vec4(aPos+posOffset,1);
    outPos=gl_Position.xyz;
    TexCoord=aTexCoord;
 }
