@@ -9,7 +9,7 @@ include_directories(include)
 include_directories(external/glfw-3.4/include)
 include_directories(external/glad/include)
 find_package(OpenGL REQUIRED)
-
+include_directories(external)
 # 添加源文件
 add_library(glad STATIC external/glad/src/glad.c)
 
