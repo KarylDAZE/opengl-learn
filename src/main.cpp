@@ -18,6 +18,7 @@ void processInput(GLFWwindow *window, Shader Shader);
 unsigned int set_texture(const char *img_path);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+void drawLightSource(unsigned int lightVAO, Shader &lightShader);
 
 int window_width = 1920, window_heigt = 1080;
 
@@ -28,6 +29,8 @@ bool firstMouse = true;
 float lastX = 960.f, lastY = 540.f;
 
 Camera camera(glm::vec3(0, 0, 3.f));
+
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 int main()
 {
@@ -55,8 +58,6 @@ int main()
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
-
-    Shader shader("../shaders/shader.vs", "../shaders/shader.fs");
 
     float vertices[] = {
         -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
@@ -101,6 +102,8 @@ int main()
         -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
         -0.5f, 0.5f, -0.5f, 0.0f, 1.0f};
 
+    float lightVertices[] = {0.f, 0.5f, 1.f};
+
     glm::vec3 cubePositions[] = {
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3(2.0f, 5.0f, -15.0f),
@@ -116,14 +119,13 @@ int main()
     int success;
     char infoLog[512];
 
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
+    unsigned int VBO, VAO, lightVAO;
 
-    unsigned int VAO;
     glGenVertexArrays(1, &VAO);
-    //  绑定VAO
     glBindVertexArray(VAO);
+
     //  把顶点数组复制到缓冲中供OpenGL使用
+    glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
@@ -133,16 +135,31 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    unsigned int texture1, texture2;
+    glGenVertexArrays(1, &lightVAO);
+    glBindVertexArray(lightVAO);
 
-    texture1 = set_texture("../resources/img/container.jpg");
-    texture2 = set_texture("../resources/img/awesomeface.png");
+    // 只需要绑定VBO不用再次设置VBO的数据，因为箱子的VBO数据中已经包含了正确的立方体顶点数据
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    // 设置灯立方体的顶点属性（对我们的灯来说仅仅只有位置数据）
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    Shader shader("../shaders/lightShader.vs", "../shaders/lightShader.fs");
+    Shader lightShader("../shaders/lightShader.vs", "../shaders/lightSourceShader.fs");
+    shader.use();
+    shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+
+    // unsigned int texture1, texture2;
+
+    // texture1 = set_texture("../resources/img/container.jpg");
+    // texture2 = set_texture("../resources/img/awesomeface.png");
     // Karyl.jpg can't be a texture,due to its width is odd. Program will be crashed at glTexImage2D()
 
-    shader.use();
-    shader.setInt("texture1", 0);
-    shader.setInt("texture2", 1);
-
+    // shader.use();
+    // shader.setInt("texture1", 0);
+    // shader.setInt("texture2", 1);
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
@@ -155,10 +172,10 @@ int main()
 
         shader.use();
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, texture1);
+        // glActiveTexture(GL_TEXTURE1);
+        // glBindTexture(GL_TEXTURE_2D, texture2);
         glBindVertexArray(VAO);
 
         glm::mat4 view;
@@ -183,7 +200,7 @@ int main()
 
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-
+        drawLightSource(lightVAO, lightShader);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -288,4 +305,25 @@ unsigned int set_texture(const char *img_path)
     }
     stbi_image_free(data);
     return texture;
+}
+
+void drawLightSource(unsigned int lightVAO, Shader &lightShader)
+{
+    lightShader.use();
+    auto model = glm::mat4(1.f);
+    model = glm::translate(model, lightPos);
+    model = glm::scale(model, glm::vec3(0.2f));
+    auto view = camera.GetViewMatrix();
+
+    auto projection = glm::perspective(glm::radians(camera.fov), (float)window_width / window_heigt, 0.1f, 100.0f);
+
+    unsigned int modelLoc = glGetUniformLocation(lightShader.ID, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    unsigned int viewLoc = glGetUniformLocation(lightShader.ID, "view");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    unsigned int projectionLoc = glGetUniformLocation(lightShader.ID, "projection");
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+    glBindVertexArray(lightVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
 }
