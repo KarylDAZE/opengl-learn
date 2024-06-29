@@ -40,6 +40,11 @@ public:
     float mouseSensitivity;
     float fov;
 
+    glm::mat4 GetViewMatrix()
+    {
+        return glm::lookAt(position, position + front, up);
+    }
+
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {

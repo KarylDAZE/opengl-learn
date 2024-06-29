@@ -21,8 +21,8 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 
 int window_width = 1920, window_heigt = 1080;
 
-float deltaTime = 0.0f; // 当前帧与上一帧的时间差
-float lastFrame = 0.0f; // 上一帧的时间
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 bool firstMouse = true;
 float lastX = 960.f, lastY = 540.f;
@@ -31,6 +31,7 @@ Camera camera(glm::vec3(0, 0, 3.f));
 
 int main()
 {
+    // 窗口和渲染相关配置初始化
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -48,10 +49,8 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-    // glViewport(0, 0, 1920, 1080);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_DEPTH_TEST);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -114,14 +113,6 @@ int main()
         glm::vec3(1.5f, 0.2f, -1.5f),
         glm::vec3(-1.3f, 1.0f, -1.5f)};
 
-    unsigned int indices[] = {
-        // 注意索引从0开始!
-        // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
-        // 这样可以由下标代表顶点组合成矩形
-        0, 1, 3, // 第一个三角形
-        1, 2, 3  // 第二个三角形
-    };
-
     int success;
     char infoLog[512];
 
@@ -136,18 +127,11 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
     // 设置顶点属性指针
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
-    // glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     unsigned int texture1, texture2;
 
@@ -178,7 +162,7 @@ int main()
         glBindVertexArray(VAO);
 
         glm::mat4 view;
-        view = glm::lookAt(camera.position, camera.position + camera.front, camera.up);
+        view = camera.GetViewMatrix();
 
         glm::mat4 projection;
         projection = glm::perspective(glm::radians(camera.fov), (float)window_width / window_heigt, 0.1f, 100.0f);
