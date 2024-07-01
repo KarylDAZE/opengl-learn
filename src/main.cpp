@@ -18,7 +18,7 @@ void processInput(GLFWwindow *window, Shader Shader);
 unsigned int set_texture(const char *img_path);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
-void drawLightSource(unsigned int lightVAO, Shader &lightShader);
+void drawLightSource(unsigned int lightVAO, Shader &lightSourceShader);
 
 int window_width = 1920, window_heigt = 1080;
 
@@ -144,11 +144,16 @@ int main()
     glEnableVertexAttribArray(0);
 
     Shader shader("../shaders/lightShader.vs", "../shaders/lightShader.fs");
-    Shader lightShader("../shaders/lightShader.vs", "../shaders/lightSourceShader.fs");
+    Shader lightSourceShader("../shaders/lightShader.vs", "../shaders/lightSourceShader.fs");
     shader.use();
-    shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-
+    shader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+    shader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+    shader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    shader.setFloat("material.shininess", 32.0f);
+    shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+    shader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+    shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
     // unsigned int texture1, texture2;
 
     // texture1 = set_texture("../resources/img/container.jpg");
@@ -188,7 +193,6 @@ int main()
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
         glm::vec3 lightViewPos = glm::vec3(view * glm::vec4(lightPos, 1));
-        // cout << lightViewPos.x << " " << lightViewPos.y << " " << lightViewPos.z << " ";
         shader.setVec3("lightPos", lightViewPos.x, lightViewPos.y, lightViewPos.z);
 
         for (unsigned int i = 0; i < 10; i++)
@@ -203,7 +207,7 @@ int main()
 
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-        drawLightSource(lightVAO, lightShader);
+        drawLightSource(lightVAO, lightSourceShader);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
