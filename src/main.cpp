@@ -156,6 +156,9 @@ int main()
     shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
     shader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
     shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+    shader.setFloat("light.constant", 1.0f);
+    shader.setFloat("light.linear", 0.09f);
+    shader.setFloat("light.quadratic", 0.032f);
     shader.setInt("material.diffuse", 0);
     shader.setInt("material.specular", 1);
 
@@ -188,8 +191,10 @@ int main()
         unsigned int projectionLoc = glGetUniformLocation(shader.ID, "projection");
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-        glm::vec3 lightViewPos = glm::vec3(view * glm::vec4(lightPos, 1));
-        shader.setVec3("light.position", lightViewPos.x, lightViewPos.y, lightViewPos.z);
+        shader.setVec3("light.position", glm::vec3(0, 0, 0));
+        shader.setVec3("light.direction", glm::vec3(0, 0, -1));
+        shader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+        shader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
 
         for (unsigned int i = 0; i < 10; i++)
         {
