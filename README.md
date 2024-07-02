@@ -1,1 +1,1 @@
-学习LearnOpenGL教程所写代码及部分练习
+学习[LearnOpenGL](https://learnopengl-cn.github.io/)教程所写代码及部分练习
