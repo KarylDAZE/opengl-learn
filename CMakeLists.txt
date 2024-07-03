@@ -16,7 +16,7 @@ include_directories(external)
 # 添加源文件
 add_library(glad STATIC external/glad/src/glad.c)
 
-file(GLOB SOURCES src/main_copy.cpp src/shader.cpp)
+file(GLOB SOURCES src/main.cpp src/shader.cpp)
 
 # 添加可执行文件
 add_executable(${PROJECT_NAME} ${SOURCES})

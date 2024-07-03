@@ -59,6 +59,12 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
     float vertices[] = {
         // positions    // normals        // texture coords
         -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
@@ -145,6 +151,7 @@ int main()
 
     Shader shader("../shaders/lightShader.vs", "../shaders/lightShader.fs");
     Shader lightSourceShader("../shaders/lightShader.vs", "../shaders/lightSourceShader.fs");
+    Shader singleShader("../shaders/lightShader.vs", "../shaders/singleShader.fs");
     shader.use();
 
     unsigned int texture0, texture1;
@@ -189,14 +196,14 @@ int main()
 
         processInput(window, shader);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         shader.use();
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture0);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture1);
+        // glActiveTexture(GL_TEXTURE1);
+        // glBindTexture(GL_TEXTURE_2D, texture1);
         glBindVertexArray(VAO);
 
         glm::mat4 view;
@@ -209,6 +216,9 @@ int main()
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         unsigned int projectionLoc = glGetUniformLocation(shader.ID, "projection");
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+        glStencilFunc(GL_ALWAYS, 1, 0xFF); // 所有的片段都应该更新模板缓冲
+        glStencilMask(0xFF);               // 启用模板缓冲写入
 
         for (unsigned int i = 0; i < 10; i++)
         {
@@ -223,10 +233,36 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
         drawLightSource(lightVAO, lightSourceShader);
+
+        glBindVertexArray(VAO);
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00); // 禁止模板缓冲的写入
+        glDisable(GL_DEPTH_TEST);
+        singleShader.use();
+        glUniformMatrix4fv(glGetUniformLocation(singleShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(singleShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        for (unsigned int i = 0; i < 10; i++)
+        {
+            glm::mat4 model(1);
+            model = glm::translate(model, cubePositions[i]);
+            float angle = 20.0f * i;
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::scale(model, glm::vec3(1.1f, 1.1f, 1.1f));
+
+            unsigned int modelLoc = glGetUniformLocation(singleShader.ID, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteVertexArrays(1, &lightVAO);
+    glDeleteBuffers(1, &VBO);
     glfwTerminate();
 
     return 0;
@@ -291,7 +327,7 @@ unsigned int set_texture(const char *img_path)
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     // 为当前绑定的纹理对象设置环绕、过滤方式
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
