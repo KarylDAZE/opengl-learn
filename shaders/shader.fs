@@ -8,5 +8,5 @@ uniform float mixPara=.2;
 
 void main()
 {
-    FragColor=mix(texture(texture1,TexCoord),texture(texture2,TexCoord),mixPara);
+    FragColor=texture(texture1,TexCoord);
 }

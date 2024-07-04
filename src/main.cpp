@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <map>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <shader.hpp>
@@ -54,16 +55,17 @@ int main()
     }
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    glEnable(GL_DEPTH_TEST);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glEnable(GL_STENCIL_TEST);
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    // glEnable(GL_STENCIL_TEST);
+    // glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    // glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     float vertices[] = {
         // positions    // normals        // texture coords
@@ -149,15 +151,33 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
+    unsigned int transparentVAO, transparentVBO;
+    glGenVertexArrays(1, &transparentVAO);
+    glGenBuffers(1, &transparentVBO);
+    glBindVertexArray(transparentVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) / 6, vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
     Shader shader("../shaders/lightShader.vs", "../shaders/lightShader.fs");
     Shader lightSourceShader("../shaders/lightShader.vs", "../shaders/lightSourceShader.fs");
-    Shader singleShader("../shaders/lightShader.vs", "../shaders/singleShader.fs");
-    shader.use();
+    Shader transparentShader("../shaders/lightShader.vs", "../shaders/shader.fs");
 
-    unsigned int texture0, texture1;
+    unsigned int texture0, texture1, texture2;
 
     texture0 = set_texture("../resources/img/container2.png");
     texture1 = set_texture("../resources/img/container2_specular.png");
+    texture2 = set_texture("../resources/img/blending_transparent_window.png");
+
+    transparentShader.use();
+    transparentShader.setInt("texture1", 2);
+
+    shader.use();
 
     shader.setFloat("material.shininess", 32.0f);
 
@@ -197,7 +217,7 @@ int main()
         processInput(window, shader);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
+        glm::mat4 view, projection;
         shader.use();
 
         glActiveTexture(GL_TEXTURE0);
@@ -206,10 +226,8 @@ int main()
         // glBindTexture(GL_TEXTURE_2D, texture1);
         glBindVertexArray(VAO);
 
-        glm::mat4 view;
         view = camera.GetViewMatrix();
 
-        glm::mat4 projection;
         projection = glm::perspective(glm::radians(camera.fov), (float)window_width / window_heigt, 0.1f, 100.0f);
 
         unsigned int viewLoc = glGetUniformLocation(shader.ID, "view");
@@ -217,8 +235,8 @@ int main()
         unsigned int projectionLoc = glGetUniformLocation(shader.ID, "projection");
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-        glStencilFunc(GL_ALWAYS, 1, 0xFF); // 所有的片段都应该更新模板缓冲
-        glStencilMask(0xFF);               // 启用模板缓冲写入
+        // glStencilFunc(GL_ALWAYS, 1, 0xFF); // 所有的片段都应该更新模板缓冲
+        // glStencilMask(0xFF);               // 启用模板缓冲写入
 
         for (unsigned int i = 0; i < 10; i++)
         {
@@ -234,29 +252,40 @@ int main()
         }
         drawLightSource(lightVAO, lightSourceShader);
 
-        glBindVertexArray(VAO);
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00); // 禁止模板缓冲的写入
-        glDisable(GL_DEPTH_TEST);
-        singleShader.use();
-        glUniformMatrix4fv(glGetUniformLocation(singleShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(glGetUniformLocation(singleShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        // glBindVertexArray(VAO);
+        // glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        // glStencilMask(0x00); // 禁止模板缓冲的写入
+        // glDisable(GL_DEPTH_TEST);
+
+        glBindVertexArray(transparentVAO);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+        transparentShader.use();
+        glUniformMatrix4fv(glGetUniformLocation(transparentShader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(transparentShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        std::map<float, glm::mat4> sorted;
         for (unsigned int i = 0; i < 10; i++)
         {
             glm::mat4 model(1);
             model = glm::translate(model, cubePositions[i]);
             float angle = 20.0f * i;
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            model = glm::scale(model, glm::vec3(1.1f, 1.1f, 1.1f));
-
-            unsigned int modelLoc = glGetUniformLocation(singleShader.ID, "model");
+            // model = glm::scale(model, glm::vec3(1.1f, 1.1f, 1.1f));
+            model = glm::translate(model, glm::vec3(0, 0, -0.1f));
+            glm::vec3 windowPos = glm::vec3(model * glm::vec4(0, 0, -0.5f, 1));
+            sorted[glm::length(camera.position - windowPos)] = model;
+        }
+        for (auto it = sorted.rbegin(); it != sorted.rend(); it++)
+        {
+            auto model = it->second;
+            unsigned int modelLoc = glGetUniformLocation(transparentShader.ID, "model");
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         }
-        glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 0, 0xFF);
-        glEnable(GL_DEPTH_TEST);
+        // glStencilMask(0xFF);
+        // glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        // glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
