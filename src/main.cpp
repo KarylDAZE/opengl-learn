@@ -269,6 +269,12 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
+    unsigned int ubo;
+    glGenBuffers(1, &ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
     unsigned int texture0, texture1, texture2;
 
     texture0 = set_texture("../resources/img/container2.png");
@@ -330,6 +336,14 @@ int main()
     shader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
     shader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
 
+    unsigned int matrices_index = glGetUniformBlockIndex(shader.ID, "Matrices");
+    glUniformBlockBinding(shader.ID, matrices_index, 0);
+    matrices_index = glGetUniformBlockIndex(lightSourceShader.ID, "Matrices");
+    glUniformBlockBinding(lightSourceShader.ID, matrices_index, 0);
+    matrices_index = glGetUniformBlockIndex(transparentShader.ID, "Matrices");
+    glUniformBlockBinding(transparentShader.ID, matrices_index, 0);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, 2 * sizeof(glm::mat4));
+
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
@@ -343,11 +357,15 @@ int main()
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         glm::mat4 view, projection;
-
         view = camera.GetViewMatrix();
-
         projection = glm::perspective(glm::radians(camera.fov), (float)window_width / window_heigt, 0.1f, 100.0f);
+
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+        glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         // draw boxes
         glActiveTexture(GL_TEXTURE0);
