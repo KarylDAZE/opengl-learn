@@ -290,9 +290,9 @@ int main()
         "../resources/img/skybox/back.jpg"};
     unsigned int cubemapTexture = loadCubemap(faces);
 
-    Shader shader("../shaders/lightShader.vs", "../shaders/lightShader.fs");
-    Shader lightSourceShader("../shaders/lightShader.vs", "../shaders/lightSourceShader.fs");
-    Shader transparentShader("../shaders/lightShader.vs", "../shaders/shader.fs");
+    Shader shader("../shaders/lightShader.vs", "../shaders/lightShader.fs", "../shaders/shader.gs");
+    Shader lightSourceShader("../shaders/lightShader.vs", "../shaders/lightSourceShader.fs", "../shaders/shader.gs");
+    Shader transparentShader("../shaders/lightShader.vs", "../shaders/shader.fs", "../shaders/shader.gs");
     Shader screenShader("../shaders/shader.vs", "../shaders/shader.fs");
     Shader skyboxShader("../shaders/skyboxShader.vs", "../shaders/skyboxShader.fs");
 
@@ -379,6 +379,8 @@ int main()
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         unsigned int projectionLoc = glGetUniformLocation(shader.ID, "projection");
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+        shader.setFloat("time", glfwGetTime());
 
         // glStencilFunc(GL_ALWAYS, 1, 0xFF); // 所有的片段都应该更新模板缓冲
         // glStencilMask(0xFF);               // 启用模板缓冲写入
